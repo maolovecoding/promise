@@ -6,7 +6,7 @@ export default {
   input: "./src/index.ts",
   output: {
     file: "./dist/bundle.js",
-    name: "MaoPromise",
+    name: "Promise",
     format: "iife",
     sourcemap: true,
   },

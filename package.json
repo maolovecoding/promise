@@ -1,0 +1,26 @@
+{
+  "name": "promise",
+  "version": "1.0.0",
+  "description": "",
+  "main": "rollup.config.js",
+  "scripts": {
+    "dev": "rollup -cw"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maolovecoding/promise.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/maolovecoding/promise/issues"
+  },
+  "homepage": "https://github.com/maolovecoding/promise#readme",
+  "devDependencies": {
+    "typescript": "^4.6.4",
+    "rollup": "^2.72.1",
+    "rollup-plugin-typescript2": "^0.31.2",
+    "rollup-plugin-node-resolve":"^5.2.0"
+  }
+}

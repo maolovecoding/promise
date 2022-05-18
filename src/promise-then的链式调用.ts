@@ -88,12 +88,6 @@ class Promise<T> {
 
   constructor(executor: IExecutor<T>) {
     const resolve: Resolve<T> = (value: T) => {
-      // 添加一个promise A+规范外的逻辑
-      // value值是一个promise的情况下，会解析promise的状态
-      if (value instanceof Promise) {
-        // 递归解析值
-        return value.then(resolve, reject);
-      }
       if (this.status === PROMISE_STATUS.PENDING) {
         this.status = PROMISE_STATUS.FULFILLED;
         this.value = value;
@@ -125,19 +119,12 @@ class Promise<T> {
    * @param onFulfilled
    * @param onRejected
    */
-  then(onFulfilled?: OnFulfilled<T>, onRejected?: OnRejected<T>) {
-    onFulfilled = typeof onFulfilled === "function" ? onFulfilled : (v) => v;
-    onRejected =
-      typeof onRejected === "function"
-        ? onRejected
-        : (r) => {
-            throw r;
-          };
+  then(onFulfilled: OnFulfilled<T>, onRejected: OnRejected<T>) {
     const promise2 = new Promise<T>((resolve, reject) => {
       if (this.status === PROMISE_STATUS.FULFILLED) {
         queueMicrotask(() => {
           try {
-            const res = onFulfilled!(this.value);
+            const res = onFulfilled(this.value);
             resolvePromise(promise2, res, resolve, reject);
           } catch (error) {
             reject(error as any);
@@ -147,7 +134,7 @@ class Promise<T> {
       if (this.status === PROMISE_STATUS.REJECTED) {
         queueMicrotask(() => {
           try {
-            const res = onRejected!(this.reason);
+            const res = onRejected(this.reason);
             resolvePromise(promise2, res, resolve, reject);
           } catch (error) {
             reject(error as any);
@@ -158,7 +145,7 @@ class Promise<T> {
         this.onFulfilledCallbacks.push(() => {
           queueMicrotask(() => {
             try {
-              const res = onFulfilled!(this.value);
+              const res = onFulfilled(this.value);
               resolvePromise(promise2, res, resolve, reject);
             } catch (error) {
               reject(error as any);
@@ -168,7 +155,7 @@ class Promise<T> {
         this.onRejectedCallbacks.push(() => {
           queueMicrotask(() => {
             try {
-              const res = onRejected!(this.reason);
+              const res = onRejected(this.reason);
               resolvePromise(promise2, res, resolve, reject);
             } catch (error) {
               reject(error as any);
@@ -179,52 +166,6 @@ class Promise<T> {
     });
     return promise2;
   }
-  catch(errorCallback: OnRejected) {
-    return this.then(void 0, errorCallback);
-  }
-  finally(finallyCallback: () => any) {
-    return this.then(
-      // 如果成功和失败的回调返回一个promise 需要等待
-      (value) => {
-        // 将值向下传递
-        return Promise.resolve(finallyCallback()).then(() => value);
-      },
-      (reason) => {
-        return Promise.resolve(finallyCallback()).catch(() => {
-          throw reason;
-        });
-      }
-    );
-  }
-  // resolve 参数如果是一个promise的话会有等待效果 reject没有等待效果
-  static resolve = <T>(value: T) => {
-    return new Promise<T>((resolve, reject) => {
-      resolve(value);
-    });
-  };
-  static reject = <T>(reason: T) => {
-    return new Promise<T>((resolve, reject) => {
-      reject(reason);
-    });
-  };
-  static all<T>(promises: Promise<T>[] | any[]) {
-    return new Promise((resolve, reject) => {
-      const res: T[] = [];
-      let times = 0;
-      const processData = (key: number, value: T) => {
-        res[key] = value;
-        if (promises.length === ++times) {
-          resolve(res);
-        }
-      };
-      for (let i = 0; i < promises.length; i++) {
-        Promise.resolve(promises[i]).then((value) => {
-          processData(i, value);
-        }, reject);
-      }
-    });
-  }
-  static race() {}
   get [Symbol.toStringTag]() {
     return "Promise";
   }

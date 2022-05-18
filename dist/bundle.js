@@ -54,6 +54,12 @@ var Promise = (function () {
           this.onFulfilledCallbacks = [];
           this.onRejectedCallbacks = [];
           const resolve = (value) => {
+              // 添加一个promise A+规范外的逻辑
+              // value值是一个promise的情况下，会解析promise的状态
+              if (value instanceof Promise$1) {
+                  // 递归解析值
+                  return value.then(resolve, reject);
+              }
               if (this.status === "pending" /* PENDING */) {
                   this.status = "fulfilled" /* FULFILLED */;
                   this.value = value;
@@ -87,6 +93,13 @@ var Promise = (function () {
        * @param onRejected
        */
       then(onFulfilled, onRejected) {
+          onFulfilled = typeof onFulfilled === "function" ? onFulfilled : (v) => v;
+          onRejected =
+              typeof onRejected === "function"
+                  ? onRejected
+                  : (r) => {
+                      throw r;
+                  };
           const promise2 = new Promise$1((resolve, reject) => {
               if (this.status === "fulfilled" /* FULFILLED */) {
                   queueMicrotask(() => {
@@ -137,10 +150,54 @@ var Promise = (function () {
           });
           return promise2;
       }
+      catch(errorCallback) {
+          return this.then(void 0, errorCallback);
+      }
+      finally(finallyCallback) {
+          return this.then(
+          // 如果成功和失败的回调返回一个promise 需要等待
+          (value) => {
+              // 将值向下传递
+              return Promise$1.resolve(finallyCallback()).then(() => value);
+          }, (reason) => {
+              return Promise$1.resolve(finallyCallback()).catch(() => {
+                  throw reason;
+              });
+          });
+      }
+      static all(promises) {
+          return new Promise$1((resolve, reject) => {
+              const res = [];
+              let times = 0;
+              const processData = (key, value) => {
+                  res[key] = value;
+                  if (promises.length === ++times) {
+                      resolve(res);
+                  }
+              };
+              for (let i = 0; i < promises.length; i++) {
+                  Promise$1.resolve(promises[i]).then((value) => {
+                      processData(i, value);
+                  }, reject);
+              }
+          });
+      }
+      static race() { }
       get [Symbol.toStringTag]() {
           return "Promise";
       }
   }
+  // resolve 参数如果是一个promise的话会有等待效果 reject没有等待效果
+  Promise$1.resolve = (value) => {
+      return new Promise$1((resolve, reject) => {
+          resolve(value);
+      });
+  };
+  Promise$1.reject = (reason) => {
+      return new Promise$1((resolve, reject) => {
+          reject(reason);
+      });
+  };
 
   return Promise$1;
 
